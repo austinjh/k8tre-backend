@@ -1,0 +1,39 @@
+{% extends "layout.html" %}
+{% block title %}Governance assessments{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb"><li class="breadcrumb-item"><a href="/lifecycle">Lifecycle</a></li><li class="breadcrumb-item active">Assessments</li></ol>
+</nav>
+<h2>Governance assessments</h2>
+<p class="text-muted">Scores, classifications and control tiers are calculated by lifecycle-core from the questionnaire; the portal cannot submit a favourable result.</p>
+<div class="card mb-4">
+  <div class="card-header">Start or repeat an assessment</div>
+  <div class="table-responsive"><table class="table table-sm mb-0">
+    <thead><tr><th>Project</th><th>State</th><th>Current tier</th><th></th></tr></thead>
+    <tbody>
+    {% for project in projects %}
+      <tr><td>{{ project.name }}</td><td>{{ project.state }}</td><td>{{ project.control_tier or 'not assessed' }}</td>
+        <td><a class="btn btn-sm btn-outline-info" href="/lifecycle/projects/{{ project.id }}/assessment">Open questionnaire</a></td></tr>
+    {% else %}<tr><td colspan="4" class="text-muted">No projects yet.</td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+</div>
+<div class="card">
+  <div class="card-header">Completed assessments</div>
+  <div class="table-responsive"><table class="table table-sm mb-0">
+    <thead><tr><th>Project</th><th>Version</th><th>Score</th><th>Classification</th><th>Tier</th><th>Mitigations</th><th>Evidence required</th></tr></thead>
+    <tbody>
+    {% for record in records %}
+      <tr>
+        <td><a href="/lifecycle/projects/{{ record.project_id }}">{{ names.get(record.project_id, record.project_id) }}</a></td>
+        <td>{{ record.version }}</td><td>{{ record.risk_score }}</td>
+        <td><span class="badge bg-warning text-dark">{{ record.classification }}</span></td>
+        <td>{{ record.control_tier }}</td>
+        <td class="small">{{ record.mitigations_json|join('; ') if record.mitigations_json else '' }}</td>
+        <td class="small">{{ record.evidence_required_json|join(', ') if record.evidence_required_json else '' }}</td>
+      </tr>
+    {% else %}<tr><td colspan="7" class="text-muted">No assessments recorded.</td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% endblock %}

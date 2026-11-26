@@ -15,6 +15,16 @@
     <div class="collapse navbar-collapse">
       <ul class="navbar-nav me-auto">
         <li class="nav-item"><a class="nav-link" href="/projects">Projects</a></li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="lifecycleNav" role="button" data-bs-toggle="dropdown" aria-expanded="false">Lifecycle</a>
+          <ul class="dropdown-menu" aria-labelledby="lifecycleNav">
+            <li><a class="dropdown-item" href="/lifecycle">Overview</a></li>
+            <li><a class="dropdown-item" href="/lifecycle/assessments">Assessments</a></li>
+            <li><a class="dropdown-item" href="/lifecycle/finance">Finance and chargeback</a></li>
+            <li><a class="dropdown-item" href="/lifecycle/allocation">Allocation</a></li>
+            <li><a class="dropdown-item" href="/lifecycle/data-requests">Data requests</a></li>
+          </ul>
+        </li>
       </ul>
       {% if request.session.get('user') %}
       <span class="navbar-text text-light me-3">

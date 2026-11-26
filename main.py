@@ -28,6 +28,8 @@ from starlette.middleware.sessions import SessionMiddleware
 from kubernetes import client, config
 from kubernetes.client.exceptions import ApiException
 
+from lifecycle_routes import router as lifecycle_router
+
 
 # Load env variables
 load_dotenv()
@@ -104,6 +106,9 @@ app.add_middleware(
 )
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
+
+# Research lifecycle prototype: server-rendered pages backed by lifecycle-core.
+app.include_router(lifecycle_router)
 
 oauth = OAuth()
 

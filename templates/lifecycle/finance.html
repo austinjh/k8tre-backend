@@ -1,0 +1,130 @@
+{% extends "layout.html" %}
+{% block title %}Finance and chargeback{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="/lifecycle">Lifecycle</a></li><li class="breadcrumb-item active">Finance</li></ol></nav>
+{% if request.query_params.get('saved') %}<div class="alert alert-success">Saved: {{ request.query_params.get('saved') }}</div>{% endif %}
+{% if request.query_params.get('quote') %}<div class="alert alert-info">Estimate preview total £{{ request.query_params.get('estimated') }} for quote {{ request.query_params.get('quote') }}.</div>{% endif %}
+<h2>Finance and chargeback</h2>
+<p class="text-muted">Rate card {{ rate_card.version }} ({{ rate_card.currency }}, simulated). Estimate → accepted quote → committed budget → simulated usage ledger → chargeback.</p>
+
+<div class="card mb-4">
+  <div class="card-header">Chargeback summary</div>
+  <div class="table-responsive"><table class="table table-sm mb-0">
+    <thead><tr><th>Project</th><th>State</th><th>Committed</th><th>Consumed</th><th>Utilisation</th><th>Alert</th></tr></thead>
+    <tbody>
+    {% for summary in summaries %}
+      <tr><td><a href="/lifecycle/projects/{{ summary.project.id }}">{{ names.get(summary.project.id, summary.project.name) }}</a></td>
+        <td>{{ summary.project.state }}</td>
+        <td>£{{ '%.2f'|format(summary.budget.committed_amount if summary.budget else 0) }}</td>
+        <td>£{{ '%.2f'|format(summary.consumed_amount) }}</td>
+        <td>{{ '%.1f'|format(summary.utilisation * 100) }}%</td>
+        <td><span class="badge bg-{{ 'danger' if summary.alert == 'BREACHED' else 'warning' if summary.alert == 'WARNING' else 'success' }}">{{ summary.alert }}</span></td></tr>
+    {% else %}<tr><td colspan="6" class="text-muted">No projects yet.</td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+</div>
+
+<div class="row">
+  <div class="col-lg-6">
+    <div class="card mb-4">
+      <div class="card-header">Create estimate and quote</div>
+      <div class="card-body">
+        {% if 'finance' in roles %}
+        {% for project in projects %}
+        <details class="mb-2">
+          <summary>{{ project.name }}</summary>
+          <form class="mt-2" method="post" action="/lifecycle/projects/{{ project.id }}/quotes">
+            <div class="row g-2">
+              <div class="col-6"><label class="form-label">vCPU</label><input class="form-control" name="cpu_vcpu" type="number" step="0.5" value="4"></div>
+              <div class="col-6"><label class="form-label">Memory GiB</label><input class="form-control" name="memory_gib" type="number" step="1" value="16"></div>
+              <div class="col-6"><label class="form-label">GPUs</label><input class="form-control" name="gpu_count" type="number" value="0"></div>
+              <div class="col-6"><label class="form-label">Storage GiB</label><input class="form-control" name="storage_gib" type="number" value="100"></div>
+              <div class="col-6"><label class="form-label">VDI hours</label><input class="form-control" name="vdi_hours" type="number" step="1" value="0"></div>
+              <div class="col-6"><label class="form-label">Licences</label><input class="form-control" name="licences" type="number" value="0"></div>
+              <div class="col-6"><label class="form-label">Billing hours</label><input class="form-control" name="hours" type="number" step="1" value="160"></div>
+              <div class="col-6"><label class="form-label">Valid days</label><input class="form-control" name="valid_days" type="number" value="14"></div>
+            </div>
+            <button class="btn btn-sm btn-outline-primary mt-2" type="submit">Generate quote</button>
+          </form>
+        </details>
+        {% endfor %}
+        {% else %}<p class="text-muted">Requires the finance role.</p>{% endif %}
+      </div>
+    </div>
+    <div class="card mb-4">
+      <div class="card-header">Quotes</div>
+      <div class="table-responsive"><table class="table table-sm mb-0">
+        <thead><tr><th>Project</th><th>Total</th><th>Status</th><th>Valid until</th><th></th></tr></thead>
+        <tbody>
+        {% for quote in quotes %}
+          <tr><td>{{ names.get(quote.project_id, quote.project_id) }}</td><td>£{{ '%.2f'|format(quote.total_amount) }}</td>
+            <td>{{ quote.status }}</td><td class="small">{{ quote.valid_until }}</td>
+            <td>
+            {% if 'finance' in roles or 'project_manager' in roles %}
+              <form method="post" action="/lifecycle/quotes/{{ quote.id }}/accept"><button class="btn btn-sm btn-outline-success" type="submit">Accept</button></form>
+            {% endif %}
+            </td></tr>
+        {% else %}<tr><td colspan="5" class="text-muted">No quotes yet.</td></tr>{% endfor %}
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card mb-4">
+      <div class="card-header">Commit budget</div>
+      <div class="card-body">
+        {% if 'finance' in roles %}
+        {% for project in projects %}
+        <details class="mb-2">
+          <summary>{{ project.name }}</summary>
+          <form class="mt-2" method="post" action="/lifecycle/projects/{{ project.id }}/budgets">
+            <div class="mb-2"><label class="form-label">Accepted quote</label>
+              <select class="form-select" name="quote_id">
+              {% for quote in quotes if quote.project_id == project.id %}<option value="{{ quote.id }}">{{ quote.id }} · £{{ '%.2f'|format(quote.total_amount) }} · {{ quote.status }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="mb-2"><label class="form-label">Committed amount</label><input class="form-control" name="committed_amount" type="number" step="0.01" value="0"></div>
+            <button class="btn btn-sm btn-outline-primary" type="submit">Commit</button>
+          </form>
+        </details>
+        {% endfor %}
+        {% else %}<p class="text-muted">Requires the finance role.</p>{% endif %}
+      </div>
+    </div>
+    <div class="card mb-4">
+      <div class="card-header">Simulate usage and post charge</div>
+      <div class="card-body">
+        {% for project in projects %}
+        <details class="mb-2">
+          <summary>{{ project.name }}</summary>
+          <form class="mt-2" method="post" action="/lifecycle/projects/{{ project.id }}/simulate-usage">
+            <div class="row g-2">
+              <div class="col-6"><label class="form-label">vCPU</label><input class="form-control" name="cpu_vcpu" type="number" value="4"></div>
+              <div class="col-6"><label class="form-label">Memory GiB</label><input class="form-control" name="memory_gib" type="number" value="16"></div>
+              <div class="col-6"><label class="form-label">GPUs</label><input class="form-control" name="gpu_count" type="number" value="0"></div>
+              <div class="col-6"><label class="form-label">Hours</label><input class="form-control" name="hours" type="number" value="20"></div>
+            </div>
+            <div class="mb-2 mt-2"><label class="form-label">Period start</label><input class="form-control" name="period_start" value="2026-11-26T00:00:00+00:00"></div>
+            <div class="mb-2"><label class="form-label">Period end</label><input class="form-control" name="period_end" value="2026-11-27T00:00:00+00:00"></div>
+            <div class="mb-2"><label class="form-label">Reference</label><input class="form-control" name="reference" value="simulated-k8s-usage"></div>
+            <button class="btn btn-sm btn-outline-warning" type="submit">Post simulated charge</button>
+          </form>
+        </details>
+        {% endfor %}
+        <div class="form-text">Usage is simulated from a resource profile; no live billing feed is connected.</div>
+      </div>
+    </div>
+    <div class="card mb-4">
+      <div class="card-header">Ledger</div>
+      <div class="table-responsive"><table class="table table-sm mb-0">
+        <thead><tr><th>Project</th><th>Type</th><th>Amount</th><th>Reference</th></tr></thead>
+        <tbody>
+        {% for entry in ledger %}
+          <tr><td>{{ names.get(entry.project_id, entry.project_id) }}</td><td>{{ entry.entry_type }}</td><td>£{{ '%.2f'|format(entry.amount) }}</td><td class="small">{{ entry.reference }}</td></tr>
+        {% else %}<tr><td colspan="4" class="text-muted">No ledger entries yet.</td></tr>{% endfor %}
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+{% endblock %}

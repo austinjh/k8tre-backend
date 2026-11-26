@@ -1,0 +1,70 @@
+{% extends "layout.html" %}
+{% block title %}Data requests{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="/lifecycle">Lifecycle</a></li><li class="breadcrumb-item active">Data requests</li></ol></nav>
+{% if request.query_params.get('saved') %}<div class="alert alert-success">Saved: {{ request.query_params.get('saved') }}</div>{% endif %}
+<h2>Data ingress and egress requests</h2>
+<div class="alert alert-warning">
+  Governance workflow only: the portal records a request and a decision. It does not transfer bytes, enforce a release,
+  inspect content, or change network policy.
+</div>
+<div class="row">
+  <div class="col-lg-7">
+    <div class="card mb-4">
+      <div class="card-header">Requests</div>
+      <div class="table-responsive"><table class="table table-sm mb-0">
+        <thead><tr><th>Project</th><th>Direction</th><th>Dataset</th><th>Classification</th><th>Status</th><th>Decision by</th></tr></thead>
+        <tbody>
+        {% for item in records %}
+          <tr><td>{{ names.get(item.project_id, item.project_id) }}</td><td>{{ item.direction }}</td><td>{{ item.dataset_name }}</td>
+            <td>{{ item.classification }}</td>
+            <td><span class="badge bg-{{ 'success' if item.status == 'APPROVED' else 'danger' if item.status == 'REJECTED' else 'secondary' }}">{{ item.status }}</span></td>
+            <td>{{ item.decided_by or '—' }}</td></tr>
+        {% else %}<tr><td colspan="6" class="text-muted">No data requests yet.</td></tr>{% endfor %}
+        </tbody>
+      </table></div>
+    </div>
+    {% if 'dpo' in roles or 'data_owner' in roles %}
+    <div class="card">
+      <div class="card-header">Record a decision</div>
+      <div class="table-responsive"><table class="table table-sm mb-0">
+        <thead><tr><th>Request</th><th>Decision</th><th>Rationale</th><th></th></tr></thead>
+        <tbody>
+        {% for item in records if item.status == 'PENDING' %}
+          <tr><td class="small">{{ item.id }} · {{ item.dataset_name }}</td>
+            <td colspan="2">
+              <form class="row g-1" method="post" action="/lifecycle/data-requests/{{ item.id }}/decision">
+                <div class="col-5"><select class="form-select form-select-sm" name="decision"><option value="approved">approved</option><option value="rejected">rejected</option></select></div>
+                <div class="col-5"><input class="form-control form-control-sm" name="rationale" placeholder="Rationale"></div>
+                <div class="col-2"><button class="btn btn-sm btn-outline-success" type="submit">Save</button></div>
+              </form>
+            </td></tr>
+        {% else %}<tr><td colspan="4" class="text-muted">No pending decisions.</td></tr>{% endfor %}
+        </tbody>
+      </table></div>
+    </div>
+    {% endif %}
+  </div>
+  <div class="col-lg-5">
+    <div class="card">
+      <div class="card-header">Submit a request</div>
+      <div class="card-body">
+        {% for project in projects %}
+        <details class="mb-2">
+          <summary>{{ project.name }}</summary>
+          <form class="mt-2" method="post" action="/lifecycle/projects/{{ project.id }}/data-requests">
+            <div class="mb-2"><label class="form-label">Direction</label><select class="form-select" name="direction"><option value="ingress">ingress</option><option value="egress">egress</option></select></div>
+            <div class="mb-2"><label class="form-label">Dataset name</label><input class="form-control" name="dataset_name" required></div>
+            <div class="mb-2"><label class="form-label">Classification</label><input class="form-control" name="classification" value="INTERNAL"></div>
+            <div class="mb-2"><label class="form-label">Owner</label><input class="form-control" name="owner" value="{{ username }}"></div>
+            <div class="mb-2"><label class="form-label">Release criteria (one per line)</label><textarea class="form-control" name="criteria" rows="2" placeholder="no direct identifiers"></textarea></div>
+            <div class="mb-2"><label class="form-label">Rationale</label><textarea class="form-control" name="rationale" rows="2"></textarea></div>
+            <button class="btn btn-sm btn-outline-primary" type="submit">Submit request</button>
+          </form>
+        </details>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

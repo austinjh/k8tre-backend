@@ -1,0 +1,59 @@
+{% extends "layout.html" %}
+{% block title %}Resource allocation{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="/lifecycle">Lifecycle</a></li><li class="breadcrumb-item active">Allocation</li></ol></nav>
+{% if request.query_params.get('saved') %}<div class="alert alert-success">Saved: {{ request.query_params.get('saved') }}</div>{% endif %}
+<h2>Resource allocation</h2>
+<p class="text-muted">Reservations are recorded against a project; they do not dynamically change namespace quotas or network policy.</p>
+<div class="row">
+  <div class="col-lg-7">
+    <div class="card mb-4">
+      <div class="card-header">Reservations</div>
+      <div class="table-responsive"><table class="table table-sm mb-0">
+        <thead><tr><th>Project</th><th>vCPU</th><th>Memory GiB</th><th>GPU</th><th>Storage GiB</th><th>Status</th><th>Approved by</th></tr></thead>
+        <tbody>
+        {% for item in allocations %}
+          <tr><td>{{ names.get(item.project_id, item.project_id) }}</td><td>{{ item.cpu_vcpu }}</td><td>{{ item.memory_gib }}</td>
+            <td>{{ item.gpu_count }}</td><td>{{ item.storage_gib }}</td><td><span class="badge bg-info text-dark">{{ item.status }}</span></td><td>{{ item.approved_by }}</td></tr>
+        {% else %}<tr><td colspan="7" class="text-muted">No reservations yet.</td></tr>{% endfor %}
+        </tbody>
+      </table></div>
+    </div>
+    <div class="card">
+      <div class="card-header">Capacity snapshots (from the metrics collector)</div>
+      <div class="table-responsive"><table class="table table-sm mb-0">
+        <thead><tr><th>Node</th><th>vCPU capacity</th><th>Memory capacity GiB</th><th>GPU</th><th>Captured</th></tr></thead>
+        <tbody>
+        {% for item in capacity %}
+          <tr><td>{{ item.node_name }}</td><td>{{ item.cpu_capacity_vcpu }}</td><td>{{ item.memory_capacity_gib }}</td><td>{{ item.gpu_count }}</td><td class="small">{{ item.captured_at }}</td></tr>
+        {% else %}<tr><td colspan="5" class="text-muted">No snapshots yet; the CronJob runs hourly.</td></tr>{% endfor %}
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card">
+      <div class="card-header">Reserve capacity</div>
+      <div class="card-body">
+        {% if 'tre_operator' in roles %}
+        {% for project in projects %}
+        <details class="mb-2">
+          <summary>{{ project.name }}</summary>
+          <form class="mt-2" method="post" action="/lifecycle/projects/{{ project.id }}/allocations">
+            <div class="row g-2">
+              <div class="col-6"><label class="form-label">vCPU</label><input class="form-control" name="cpu_vcpu" type="number" step="0.5" value="4"></div>
+              <div class="col-6"><label class="form-label">Memory GiB</label><input class="form-control" name="memory_gib" type="number" value="16"></div>
+              <div class="col-6"><label class="form-label">GPUs</label><input class="form-control" name="gpu_count" type="number" value="0"></div>
+              <div class="col-6"><label class="form-label">Storage GiB</label><input class="form-control" name="storage_gib" type="number" value="100"></div>
+            </div>
+            <div class="mb-2 mt-2"><label class="form-label">Rationale</label><textarea class="form-control" name="rationale" rows="2"></textarea></div>
+            <button class="btn btn-sm btn-outline-primary" type="submit">Reserve</button>
+          </form>
+        </details>
+        {% endfor %}
+        {% else %}<p class="text-muted">Requires the TRE operator role.</p>{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

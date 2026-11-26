@@ -1,0 +1,76 @@
+{% extends "layout.html" %}
+{% block title %}Research lifecycle{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/">Home</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Research lifecycle</li>
+  </ol>
+</nav>
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>Research lifecycle</h2>
+  <span class="badge bg-secondary">Signed in as {{ username }}</span>
+</div>
+<p class="text-muted">
+  Lifecycle roles from your Keycloak identity:
+  {% for role in roles %}<span class="badge bg-info text-dark me-1">{{ role }}</span>{% else %}<span class="badge bg-warning text-dark">none</span>{% endfor %}
+</p>
+
+<div class="row mb-4">
+  <div class="col-md-3"><div class="card text-center"><div class="card-body"><h6 class="card-title text-muted">Projects</h6><h3>{{ projects|length }}</h3></div></div></div>
+  <div class="col-md-3"><div class="card text-center"><div class="card-body"><h6 class="card-title text-muted">Active</h6><h3>{{ summaries|selectattr('project.state', 'equalto', 'ACTIVE')|list|length }}</h3></div></div></div>
+  <div class="col-md-3"><div class="card text-center"><div class="card-body"><h6 class="card-title text-muted">Awaiting governance</h6><h3>{{ summaries|selectattr('project.state', 'equalto', 'GOVERNANCE_REVIEW')|list|length }}</h3></div></div></div>
+  <div class="col-md-3"><div class="card text-center"><div class="card-body"><h6 class="card-title text-muted">Budget alerts</h6><h3>{{ summaries|rejectattr('alert', 'equalto', 'OK')|list|length }}</h3></div></div></div>
+</div>
+
+<div class="row">
+  <div class="col-lg-8">
+    <div class="card mb-4">
+      <div class="card-header">Projects</div>
+      <div class="table-responsive">
+        <table class="table table-hover table-sm mb-0">
+          <thead><tr><th>Project</th><th>State</th><th>Control tier</th><th>Committed</th><th>Used</th><th>Budget</th></tr></thead>
+          <tbody>
+          {% for summary in summaries %}
+            {% set project = summary.project %}
+            <tr>
+              <td><a href="/lifecycle/projects/{{ project.id }}">{{ project.name }}</a><div class="small text-muted">{{ project.description }}</div></td>
+              <td><span class="badge bg-primary">{{ project.state }}</span></td>
+              <td>{{ project.control_tier or 'not assessed' }}</td>
+              <td>£{{ '%.2f'|format(summary.budget.committed_amount if summary.budget else 0) }}</td>
+              <td>£{{ '%.2f'|format(summary.consumed_amount) }}</td>
+              <td><span class="badge bg-{{ 'danger' if summary.alert == 'BREACHED' else 'warning' if summary.alert == 'WARNING' else 'success' }}">{{ summary.alert }}</span></td>
+            </tr>
+          {% else %}
+            <tr><td colspan="6" class="text-muted">No projects yet. Create one below.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header">Register a study and project</div>
+      <div class="card-body">
+        <form method="post" action="/lifecycle/projects">
+          <div class="mb-2"><label class="form-label" for="study_title">Study title</label><input class="form-control" id="study_title" name="study_title" value="Lifecycle demonstration" required></div>
+          <div class="mb-2"><label class="form-label" for="name">Project name</label><input class="form-control" id="name" name="name" placeholder="e.g. asthma-lifecycle-demo" required></div>
+          <div class="mb-2"><label class="form-label" for="description">Description</label><textarea class="form-control" id="description" name="description" rows="2"></textarea></div>
+          <div class="mb-2"><label class="form-label" for="owner">Owner</label><input class="form-control" id="owner" name="owner" value="{{ username }}"></div>
+          <button class="btn btn-primary" type="submit">Create project</button>
+        </form>
+      </div>
+    </div>
+    <div class="card mt-3">
+      <div class="card-header">Quick links</div>
+      <div class="list-group list-group-flush">
+        <a class="list-group-item list-group-item-action" href="/lifecycle/assessments">Governance assessments</a>
+        <a class="list-group-item list-group-item-action" href="/lifecycle/finance">Estimates, budgets and chargeback</a>
+        <a class="list-group-item list-group-item-action" href="/lifecycle/allocation">Resource allocation</a>
+        <a class="list-group-item list-group-item-action" href="/lifecycle/data-requests">Data ingress and egress requests</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

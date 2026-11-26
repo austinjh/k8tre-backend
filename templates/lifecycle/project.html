@@ -1,0 +1,97 @@
+{% extends "layout.html" %}
+{% block title %}{{ summary.project.name }}{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/lifecycle">Lifecycle</a></li>
+    <li class="breadcrumb-item active" aria-current="page">{{ summary.project.name }}</li>
+  </ol>
+</nav>
+{% if request.query_params.get('saved') %}
+<div class="alert alert-success">Saved: {{ request.query_params.get('saved') }}</div>
+{% endif %}
+<h2>{{ summary.project.name }} <span class="badge bg-primary">{{ summary.project.state }}</span></h2>
+<p class="text-muted">{{ summary.project.description }} · Owner {{ summary.project.owner }} · Tier {{ summary.project.control_tier or 'not assessed' }}</p>
+
+<div class="row mb-4">
+  <div class="col-md-4"><div class="card"><div class="card-body"><h6 class="text-muted">Committed budget</h6><h4>£{{ '%.2f'|format(summary.budget.committed_amount if summary.budget else 0) }}</h4></div></div></div>
+  <div class="col-md-4"><div class="card"><div class="card-body"><h6 class="text-muted">Consumed</h6><h4>£{{ '%.2f'|format(summary.consumed_amount) }}</h4></div></div></div>
+  <div class="col-md-4"><div class="card"><div class="card-body"><h6 class="text-muted">Budget status</h6><h4><span class="badge bg-{{ 'danger' if summary.alert == 'BREACHED' else 'warning' if summary.alert == 'WARNING' else 'success' }}">{{ summary.alert }}</span></h4></div></div></div>
+</div>
+
+<div class="row">
+  <div class="col-lg-7">
+    <div class="card mb-4">
+      <div class="card-header">Audit trail</div>
+      <div class="table-responsive"><table class="table table-sm mb-0">
+        <thead><tr><th>When</th><th>Action</th><th>Actor</th><th>State</th></tr></thead>
+        <tbody>
+        {% for event in audit %}
+          <tr><td class="small">{{ event.created_at }}</td><td>{{ event.action }}</td><td>{{ event.actor }}</td><td class="small">{{ event.after_json }}</td></tr>
+        {% else %}<tr><td colspan="4" class="text-muted">No audit events.</td></tr>{% endfor %}
+        </tbody>
+      </table></div>
+    </div>
+    <div class="card mb-4">
+      <div class="card-header">Evidence and data requests</div>
+      <div class="table-responsive"><table class="table table-sm mb-0">
+        <thead><tr><th>Kind / direction</th><th>Reference</th><th>Status</th></tr></thead>
+        <tbody>
+        {% for item in evidence %}<tr><td>{{ item.kind }}</td><td>{{ item.object_key }}</td><td>recorded</td></tr>{% endfor %}
+        {% for item in data_requests %}<tr><td>{{ item.direction }}</td><td>{{ item.dataset_name }}</td><td>{{ item.status }}</td></tr>{% endfor %}
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card mb-3">
+      <div class="card-header">State transition</div>
+      <div class="card-body">
+        <form method="post" action="/lifecycle/projects/{{ summary.project.id }}/transitions">
+          <div class="mb-2"><label class="form-label" for="action">Action</label>
+            <select class="form-select" id="action" name="action">
+              <option value="submit">submit</option><option value="start_assessment">start_assessment</option>
+              <option value="request_governance">request_governance</option><option value="approve_governance">approve_governance</option>
+              <option value="approve_budget">approve_budget</option><option value="provision">provision</option>
+              <option value="activate">activate (requires provisioning evidence)</option>
+              <option value="suspend">suspend</option><option value="resume">resume</option>
+              <option value="close">close</option><option value="archive">archive (requires retention evidence)</option>
+            </select>
+          </div>
+          <div class="mb-2"><label class="form-label" for="reason">Reason (required to suspend)</label><input class="form-control" id="reason" name="reason"></div>
+          <button class="btn btn-outline-primary" type="submit">Apply transition</button>
+        </form>
+      </div>
+    </div>
+    <div class="card mb-3">
+      <div class="card-header">Assessments</div>
+      <div class="card-body"><a class="btn btn-outline-info" href="/lifecycle/projects/{{ summary.project.id }}/assessment">Complete DPIA-style assessment</a></div>
+    </div>
+    {% if 'dpo' in roles or 'data_owner' in roles or 'finance' in roles %}
+    <div class="card mb-3">
+      <div class="card-header">Governance decision</div>
+      <div class="card-body">
+        <form method="post" action="/lifecycle/projects/{{ summary.project.id }}/approvals">
+          <div class="mb-2"><label class="form-label" for="kind">Kind</label><input class="form-control" id="kind" name="kind" value="governance"></div>
+          <div class="mb-2"><label class="form-label" for="decision">Decision</label><select class="form-select" id="decision" name="decision"><option value="approved">approved</option><option value="rejected">rejected</option></select></div>
+          <div class="mb-2"><label class="form-label" for="rationale">Rationale</label><textarea class="form-control" id="rationale" name="rationale" rows="2"></textarea></div>
+          <button class="btn btn-outline-success" type="submit">Record decision</button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+    <div class="card mb-3">
+      <div class="card-header">Record evidence</div>
+      <div class="card-body">
+        <form method="post" action="/lifecycle/projects/{{ summary.project.id }}/evidence">
+          <div class="mb-2"><label class="form-label" for="kind">Kind</label><input class="form-control" id="kind" name="kind" placeholder="provisioning / retention / dpia"></div>
+          <div class="mb-2"><label class="form-label" for="object_key">Object key (metadata only)</label><input class="form-control" id="object_key" name="object_key" placeholder="evidence/demo/provisioning.json"></div>
+          <div class="mb-2"><label class="form-label" for="sha256">SHA-256 (optional)</label><input class="form-control" id="sha256" name="sha256"></div>
+          <button class="btn btn-outline-secondary" type="submit">Record evidence</button>
+        </form>
+        <div class="form-text">The portal records a reference; it does not transfer or inspect data.</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

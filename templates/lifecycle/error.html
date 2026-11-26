@@ -1,0 +1,9 @@
+{% extends "layout.html" %}
+{% block title %}Lifecycle error{% endblock %}
+{% block content %}
+<div class="alert alert-danger" role="alert">
+  <h4 class="alert-heading">Lifecycle request failed ({{ status }})</h4>
+  <pre class="mb-0">{{ error }}</pre>
+</div>
+<a href="/lifecycle" class="btn btn-outline-secondary">Back to lifecycle overview</a>
+{% endblock %}

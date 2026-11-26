@@ -1,0 +1,33 @@
+{% extends "layout.html" %}
+{% block title %}Assessment · {{ project.name }}{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb"><li class="breadcrumb-item"><a href="/lifecycle/assessments">Assessments</a></li><li class="breadcrumb-item active">{{ project.name }}</li></ol>
+</nav>
+<h2>DPIA-style assessment: {{ project.name }}</h2>
+<p class="text-muted">Template version {{ version }}. Answers are sent to lifecycle-core, which computes the score and control tier.</p>
+<form method="post" action="/lifecycle/projects/{{ project.id }}/assessment">
+  <input type="hidden" name="version" value="{{ version }}">
+  {% for question in questions %}
+  <div class="card mb-3">
+    <div class="card-body">
+      <label class="form-label fw-semibold" for="q-{{ question.key }}">{{ loop.index }}. {{ question.prompt }}</label>
+      {% if question.type == 'single' %}
+      <select class="form-select" id="q-{{ question.key }}" name="{{ question.key }}">
+        {% for option in question.options %}
+        <option value="{{ option }}" {% if previous.get(question.key) == option %}selected{% endif %}>{{ option }}</option>
+        {% endfor %}
+      </select>
+      {% else %}
+      <select class="form-select" id="q-{{ question.key }}" name="{{ question.key }}">
+        <option value="YES" {% if previous.get(question.key) == 'YES' %}selected{% endif %}>YES</option>
+        <option value="NO" {% if previous.get(question.key) != 'YES' %}selected{% endif %}>NO</option>
+      </select>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+  <button class="btn btn-primary" type="submit">Submit assessment</button>
+  <a class="btn btn-secondary" href="/lifecycle/projects/{{ project.id }}">Cancel</a>
+</form>
+{% endblock %}
