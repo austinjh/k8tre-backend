@@ -37,8 +37,8 @@
               <td><a href="/lifecycle/projects/{{ project.id }}">{{ project.name }}</a><div class="small text-muted">{{ project.description }}</div></td>
               <td><span class="badge bg-primary">{{ project.state }}</span></td>
               <td>{{ project.control_tier or 'not assessed' }}</td>
-              <td>£{{ '%.2f'|format(summary.budget.committed_amount if summary.budget else 0) }}</td>
-              <td>£{{ '%.2f'|format(summary.consumed_amount) }}</td>
+              <td>£{{ '%.2f'|format((summary.budget.committed_amount if summary.budget else 0)|float) }}</td>
+              <td>£{{ '%.2f'|format(summary.consumed_amount|float) }}</td>
               <td><span class="badge bg-{{ 'danger' if summary.alert == 'BREACHED' else 'warning' if summary.alert == 'WARNING' else 'success' }}">{{ summary.alert }}</span></td>
             </tr>
           {% else %}

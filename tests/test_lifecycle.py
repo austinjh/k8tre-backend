@@ -103,17 +103,51 @@ def test_dashboard_renders_projects_and_roles(portal: TestClient) -> None:
     ]
     fake.responses["/v1/projects/p1/summary"] = {
         "project": fake.responses["/v1/projects"][0],
-        "consumed_amount": 0.0,
-        "utilisation": 0.0,
-        "alert": "OK",
-        "budget": None,
+        "consumed_amount": "29.25",
+        "utilisation": 0.8505,
+        "alert": "WARNING",
+        "budget": {"committed_amount": "34.39"},
     }
 
     response = portal.get("/lifecycle")
     assert response.status_code == 200
     assert "asthma-demo" in response.text
+    assert "£34.39" in response.text
+    assert "£29.25" in response.text
     assert "researcher" in response.text
     assert ("GET", "/v1/projects", {"actor": "alice", "roles": ["project_manager", "researcher"]}) in fake.calls
+
+
+def test_finance_renders_string_decimal_amounts(portal: TestClient) -> None:
+    fake: FakeClient = portal.fake  # type: ignore[assignment]
+    project = {
+        "id": "p1",
+        "name": "asthma-demo",
+        "description": "Demonstration project",
+        "state": "ACTIVE",
+        "control_tier": "TIER_3",
+    }
+    fake.responses["/v1/projects"] = [project]
+    fake.responses["/v1/projects/p1/summary"] = {
+        "project": project,
+        "budget": {"committed_amount": "34.39"},
+        "consumed_amount": "29.25",
+        "utilisation": 0.8505,
+        "alert": "WARNING",
+    }
+    fake.responses["/v1/quotes"] = [
+        {"id": "q1", "project_id": "p1", "total_amount": "34.39", "status": "accepted", "valid_until": "2026-12-10"}
+    ]
+    fake.responses["/v1/ledger-entries"] = [
+        {"project_id": "p1", "entry_type": "charge", "amount": "29.25", "reference": "simulated"}
+    ]
+    fake.responses["/v1/rate-card"] = {"version": "v1", "currency": "GBP", "rates": {}}
+
+    response = portal.get("/lifecycle/finance")
+    assert response.status_code == 200
+    assert "£34.39" in response.text
+    assert "£29.25" in response.text
+    assert "85.0%" in response.text
 
 
 def test_assessment_form_submits_answers_only(portal: TestClient) -> None:

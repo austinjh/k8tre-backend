@@ -14,8 +14,8 @@
 <p class="text-muted">{{ summary.project.description }} · Owner {{ summary.project.owner }} · Tier {{ summary.project.control_tier or 'not assessed' }}</p>
 
 <div class="row mb-4">
-  <div class="col-md-4"><div class="card"><div class="card-body"><h6 class="text-muted">Committed budget</h6><h4>£{{ '%.2f'|format(summary.budget.committed_amount if summary.budget else 0) }}</h4></div></div></div>
-  <div class="col-md-4"><div class="card"><div class="card-body"><h6 class="text-muted">Consumed</h6><h4>£{{ '%.2f'|format(summary.consumed_amount) }}</h4></div></div></div>
+  <div class="col-md-4"><div class="card"><div class="card-body"><h6 class="text-muted">Committed budget</h6><h4>£{{ '%.2f'|format((summary.budget.committed_amount if summary.budget else 0)|float) }}</h4></div></div></div>
+  <div class="col-md-4"><div class="card"><div class="card-body"><h6 class="text-muted">Consumed</h6><h4>£{{ '%.2f'|format(summary.consumed_amount|float) }}</h4></div></div></div>
   <div class="col-md-4"><div class="card"><div class="card-body"><h6 class="text-muted">Budget status</h6><h4><span class="badge bg-{{ 'danger' if summary.alert == 'BREACHED' else 'warning' if summary.alert == 'WARNING' else 'success' }}">{{ summary.alert }}</span></h4></div></div></div>
 </div>
 

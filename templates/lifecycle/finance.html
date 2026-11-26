@@ -15,8 +15,8 @@
     {% for summary in summaries %}
       <tr><td><a href="/lifecycle/projects/{{ summary.project.id }}">{{ names.get(summary.project.id, summary.project.name) }}</a></td>
         <td>{{ summary.project.state }}</td>
-        <td>£{{ '%.2f'|format(summary.budget.committed_amount if summary.budget else 0) }}</td>
-        <td>£{{ '%.2f'|format(summary.consumed_amount) }}</td>
+        <td>£{{ '%.2f'|format((summary.budget.committed_amount if summary.budget else 0)|float) }}</td>
+        <td>£{{ '%.2f'|format(summary.consumed_amount|float) }}</td>
         <td>{{ '%.1f'|format(summary.utilisation * 100) }}%</td>
         <td><span class="badge bg-{{ 'danger' if summary.alert == 'BREACHED' else 'warning' if summary.alert == 'WARNING' else 'success' }}">{{ summary.alert }}</span></td></tr>
     {% else %}<tr><td colspan="6" class="text-muted">No projects yet.</td></tr>{% endfor %}
@@ -57,7 +57,7 @@
         <thead><tr><th>Project</th><th>Total</th><th>Status</th><th>Valid until</th><th></th></tr></thead>
         <tbody>
         {% for quote in quotes %}
-          <tr><td>{{ names.get(quote.project_id, quote.project_id) }}</td><td>£{{ '%.2f'|format(quote.total_amount) }}</td>
+          <tr><td>{{ names.get(quote.project_id, quote.project_id) }}</td><td>£{{ '%.2f'|format(quote.total_amount|float) }}</td>
             <td>{{ quote.status }}</td><td class="small">{{ quote.valid_until }}</td>
             <td>
             {% if 'finance' in roles or 'project_manager' in roles %}
@@ -80,7 +80,7 @@
           <form class="mt-2" method="post" action="/lifecycle/projects/{{ project.id }}/budgets">
             <div class="mb-2"><label class="form-label">Accepted quote</label>
               <select class="form-select" name="quote_id">
-              {% for quote in quotes if quote.project_id == project.id %}<option value="{{ quote.id }}">{{ quote.id }} · £{{ '%.2f'|format(quote.total_amount) }} · {{ quote.status }}</option>{% endfor %}
+              {% for quote in quotes if quote.project_id == project.id %}<option value="{{ quote.id }}">{{ quote.id }} · £{{ '%.2f'|format(quote.total_amount|float) }} · {{ quote.status }}</option>{% endfor %}
               </select>
             </div>
             <div class="mb-2"><label class="form-label">Committed amount</label><input class="form-control" name="committed_amount" type="number" step="0.01" value="0"></div>
@@ -120,7 +120,7 @@
         <thead><tr><th>Project</th><th>Type</th><th>Amount</th><th>Reference</th></tr></thead>
         <tbody>
         {% for entry in ledger %}
-          <tr><td>{{ names.get(entry.project_id, entry.project_id) }}</td><td>{{ entry.entry_type }}</td><td>£{{ '%.2f'|format(entry.amount) }}</td><td class="small">{{ entry.reference }}</td></tr>
+          <tr><td>{{ names.get(entry.project_id, entry.project_id) }}</td><td>{{ entry.entry_type }}</td><td>£{{ '%.2f'|format(entry.amount|float) }}</td><td class="small">{{ entry.reference }}</td></tr>
         {% else %}<tr><td colspan="4" class="text-muted">No ledger entries yet.</td></tr>{% endfor %}
         </tbody>
       </table></div>
